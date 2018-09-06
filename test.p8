@@ -17,37 +17,43 @@ function c_txt:new(str)
  o.h=4
 	o.x=0
 	o.y=0
+	o.x_init=0
+	o.y_init=0
 	o.dx=2
 	o.dy=0
 	o.col=8
 	o.str=str
+	o.out_xbound=false
+	o.out_ybound=false
  return o
 end
 
 function _init()
+	debug=true
+	
  phy_vel=0
- phy_acc=0.05
- phy_maxvel=5
- phy_minvel=-5
+ phy_acc=0.03
+ phy_maxvel=2
+ phy_minvel=-2
 
  -- setting up txt_array
  txt_array={}
- for i=1,15 do
+ for i=0,15 do
   local t=c_txt:new("test")
   t.y=i*6
-  t.x=i * 1 * #t.str
+  t.y_init=t.y
+  t.x=-127 + i * 1 * #t.str
+  t.x_init=t.x
   t.col=i
  	add(txt_array,t)
  end
- 
- txt_=c_txt:new("test")
- 
+  
  txt_vel=c_txt:new("vel: ")
  txt_vel.x=84
  txt_vel.y=123
 end
 
-function _update60()
+function _update()
  --set global vel -> moving right
  phy_vel+=phy_acc
  	
@@ -56,17 +62,30 @@ function _update60()
 	   phy_vel < phy_minvel then
 		phy_acc=-phy_acc
 	end	
-	
-	-- move top text
- local len=4 * #txt_.str 
-	move_obj_x(txt_,len,phy_vel)
-	
-	-- move other texts
-	for x in all(txt_array) do
-		local len=4 * #x.str
-		move_obj_x(x,len,phy_vel)
+		
+	-- move texts
+	for o in all(txt_array) do
+		local len=4 * #o.str
+		check_xbound(o,phy_vel,len)
+		if not o.out_xbound then
+			o.x+=phy_vel
+		end
 	end
 	
+	out__d=false
+	if all_out_xbound(txt_array) then
+	 out__d=true
+	 --fixme here is a bug
+	 --x.init is not correct if
+	 --text exceeds right border
+		for o in all(txt_array) do
+		 if phy_vel < 0 then
+				o.x=o.x_init
+			else
+			 o.x=127+o.x_init
+			end
+		end
+	end	
 end
 
 function _draw()
@@ -77,28 +96,51 @@ function _draw()
 	print(str_vel,
 	      txt_vel.x, txt_vel.y,
 	      txt_vel.col)
-	
-	--print text
-	local t=txt_
-	print(t.str,t.x,t.y,t.col)
-	
+		
 	--print text array
  for x in all(txt_array) do
  	print(x.str,x.x,x.y,x.col)
  end
  
+ if debug and out__d then
+	 print("out: t",84,118,0)
+	else
+		print("out: f",84,118,0)
+	end
+end
+-->8
+--checks if txt-object is out
+--of bounds in x direction
+--and sets out_of_bounds flag
+function check_xbound(o,vel,tlen)
+ local x_off=0
+ if o.x > 127 
+  and vel > 0
+  then
+  o.out_xbound=true
+		o.x=127+x_off
+		sfx(0)
+	elseif o.x < 0-tlen
+	 and vel < 0
+	 then
+	 o.out_xbound=true
+	 o.x=0-tlen-x_off
+	 sfx(0)
+	else
+	 o.out_xboud=false
+	end
 end
 
---moves an txt-object in 
---x direction
-function move_obj_x(o,txt_len,vel)
- o.x+=vel
- if o.x > 127 and vel > 0 then
-		o.x=0-txt_len
-	elseif o.x < 0-txt_len 
-	   and vel < 0 then
-	 o.x=127+txt_len
+--check if all text arrays
+-- ar out of bounds
+function all_out_xbound(a)
+	all_=true
+	for x in all(a) do
+	 if not x.out_xbound then 
+	 	all_=false
+	 end
 	end
+	return all_
 end
 __label__
 77777777777777777777777777777777777777777777788878887788788877777777777777777777777777777777777777777777777777777777777777777777
@@ -230,3 +272,5 @@ __label__
 77777777777777777777777777777777777777777777777777777777777777777777777777777777777788878777877778777777777778777777778777877787
 77777777777777777777777777777777777777777777777777777777777777777777777777777777777778778887888777777777777788877877778777877787
 
+__sfx__
+00010000161401714018140191501a1501a1501b1501c1501e1501f150221502315025150261502715024140211401d1401714001140083000430001300013000230002300023000230002300023000330003300
