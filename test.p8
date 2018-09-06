@@ -9,22 +9,27 @@ __lua__
 
 c_txt={}
  
-function c_txt:new(str)
+function c_txt:new(str,x_,y_,col_)
  local o={}
  setmetatable(o, self)
  self.__index = self
  o.w=4
  o.h=4
-	o.x=0
-	o.y=0
-	o.dx=2
-	o.dy=0
-	o.col=8
-	o.str=str
+ o.x=x_
+ o.y=y_
+ o.x_init=0
+ o.y_init=0
+ o.dx=2
+ o.dy=0
+ o.col=col_
+ o.str=str
+ o.out_xbound=false
+ o.out_ybound=false
  return o
 end
 
 function _init()
+ debug=false	
  phy_vel=0
  phy_acc=0.05
  phy_maxvel=5
@@ -32,19 +37,18 @@ function _init()
 
  -- setting up txt_array
  txt_array={}
- for i=1,15 do
-  local t=c_txt:new("test")
-  t.y=i*6
-  t.x=i * 1 * #t.str
-  t.col=i
+ txt_init_offset=75
+ for i=0,15 do
+  local t=c_txt:new("test",
+          -txt_init_offset + i * 4,
+          i*6,
+          i)
+  t.y_inti=t.y
+  t.x_init=t.x
  	add(txt_array,t)
  end
  
- txt_=c_txt:new("test")
- 
- txt_vel=c_txt:new("vel: ")
- txt_vel.x=84
- txt_vel.y=123
+ txt_v=c_txt:new("vel: ",84,123,8)
 end
 
 function _update60()
@@ -56,50 +60,80 @@ function _update60()
 	   phy_vel < phy_minvel then
 		phy_acc=-phy_acc
 	end	
-	
-	-- move top text
- local len=4 * #txt_.str 
-	move_obj_x(txt_,len,phy_vel)
-	
-	-- move other texts
-	for x in all(txt_array) do
-		local len=4 * #x.str
-		move_obj_x(x,len,phy_vel)
+		
+	-- move texts
+	for o in all(txt_array) do
+		local len=4 * #o.str
+		check_xbound(o,phy_vel,len)
+		o.x+=phy_vel
 	end
+	debug_1(txt_array[1])
 	
+	if all_out_xbound(txt_array) then
+		for o in all(txt_array) do
+		 --if out to the left,
+		 --continue on the right side
+		 if phy_vel<0 and o.x<0 then
+				o.x=o.x_init+127+txt_init_offset
+				--change color
+    o.col=rnd(16)
+			--if out to the right
+			--continue on the left side
+			elseif phy_vel>0 and o.x>127 then
+			 o.x=o.x_init
+			 --change color
+    o.col=rnd(16)
+			end
+		end
+	end
+	--]]
 end
 
 function _draw()
  cls(7)
 
 	--print velocity
-	local str_vel=txt_vel.str..tostr(phy_vel)
-	print(str_vel,
-	      txt_vel.x, txt_vel.y,
-	      txt_vel.col)
-	
-	--print text
-	local t=txt_
-	print(t.str,t.x,t.y,t.col)
-	
+	local strv=txt_v.str..tostr(phy_vel)
+	print(strv,txt_v.x,txt_v.y,
+	      txt_v.col)
+		
 	--print text array
  for x in all(txt_array) do
  	print(x.str,x.x,x.y,x.col)
  end
  
 end
-
---moves an txt-object in 
---x direction
-function move_obj_x(o,txt_len,vel)
- o.x+=vel
- if o.x > 127 and vel > 0 then
-		o.x=0-txt_len
-	elseif o.x < 0-txt_len 
-	   and vel < 0 then
-	 o.x=127+txt_len
-	end
+-->8
+function check_xbound(o,vel,tlen)
+ if o.x>127 or o.x<0 then
+ 	o.out_xbound=true
+ 	--sfx(0)
+ else
+  o.out_xbound=false
+ end
 end
+
+function all_out_xbound(a)
+	all_=true
+	for x in all(a) do
+	 if not x.out_xbound then 
+	 	all_=false
+	 end
+	end
+	return all_
+end
+
+--[[
+function debug_1(o)
+ if (not debug) then return end
+ local str=tostr(o.x).."\t"
+ str=str.."init: "..tostr(o.x_init).."\t"
+ str=str.."v: "..tostr(phy_vel).."\t"
+ str=str..tostr(o.out_xbound)
+ str=str.."\t"..tostr(all_out_xbound(txt_array))
+ printh(str)
+end
+--]]
 __label__
 77777777777777777777777777777777777777777777788878887788788877777777777777777777777777777777777777777777777777777777777777777777
 77777777777777777777777777777777777777777777778778777877778777777777777777777777777777777777777777777777777777777777777777777777
@@ -230,3 +264,5 @@ __label__
 77777777777777777777777777777777777777777777777777777777777777777777777777777777777788878777877778777777777778777777778777877787
 77777777777777777777777777777777777777777777777777777777777777777777777777777777777778778887888777777777777788877877778777877787
 
+__sfx__
+00010000161401714018140191501a1501a1501b1501c1501e1501f150221502315025150261502715024140211401d1401714001140083000430001300013000230002300023000230002300023000330003300
