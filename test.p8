@@ -9,51 +9,49 @@ __lua__
 
 c_txt={}
  
-function c_txt:new(str)
+function c_txt:new(str,x_,y_,col_)
  local o={}
  setmetatable(o, self)
  self.__index = self
  o.w=4
  o.h=4
-	o.x=0
-	o.y=0
-	o.x_init=0
-	o.y_init=0
-	o.dx=2
-	o.dy=0
-	o.col=8
-	o.str=str
-	o.out_xbound=false
-	o.out_ybound=false
+ o.x=x_
+ o.y=y_
+ o.x_init=0
+ o.y_init=0
+ o.dx=2
+ o.dy=0
+ o.col=col_
+ o.str=str
+ o.out_xbound=false
+ o.out_ybound=false
  return o
 end
 
 function _init()
-	debug=true
-	
+ debug=false	
  phy_vel=0
- phy_acc=0.03
- phy_maxvel=2
- phy_minvel=-2
+ phy_acc=0.05
+ phy_maxvel=5
+ phy_minvel=-5
 
  -- setting up txt_array
  txt_array={}
+ txt_init_offset=75
  for i=0,15 do
-  local t=c_txt:new("test")
-  t.y=i*6
-  t.y_init=t.y
-  t.x=-127 + i * 1 * #t.str
+  local t=c_txt:new("test",
+          -txt_init_offset + i * 4,
+          i*6,
+          i)
+  t.y_inti=t.y
   t.x_init=t.x
-  t.col=i
  	add(txt_array,t)
  end
-  
- txt_vel=c_txt:new("vel: ")
- txt_vel.x=84
- txt_vel.y=123
+ 
+ txt_v=c_txt:new("vel: ",84,123,8)
 end
 
-function _update()
+function _update60()
  --set global vel -> moving right
  phy_vel+=phy_acc
  	
@@ -67,72 +65,54 @@ function _update()
 	for o in all(txt_array) do
 		local len=4 * #o.str
 		check_xbound(o,phy_vel,len)
-		if not o.out_xbound then
-			o.x+=phy_vel
-		end
+		o.x+=phy_vel
 	end
+	debug_1(txt_array[1])
 	
-	out__d=false
 	if all_out_xbound(txt_array) then
-	 out__d=true
-	 --fixme here is a bug
-	 --x.init is not correct if
-	 --text exceeds right border
 		for o in all(txt_array) do
-		 if phy_vel < 0 then
-				o.x=o.x_init
-			else
-			 o.x=127+o.x_init
+		 --if out to the left,
+		 --continue on the right side
+		 if phy_vel<0 and o.x<0 then
+				o.x=o.x_init+127+txt_init_offset
+				--change color
+    o.col=rnd(16)
+			--if out to the right
+			--continue on the left side
+			elseif phy_vel>0 and o.x>127 then
+			 o.x=o.x_init
+			 --change color
+    o.col=rnd(16)
 			end
 		end
-	end	
+	end
+	--]]
 end
 
 function _draw()
  cls(7)
 
 	--print velocity
-	local str_vel=txt_vel.str..tostr(phy_vel)
-	print(str_vel,
-	      txt_vel.x, txt_vel.y,
-	      txt_vel.col)
+	local strv=txt_v.str..tostr(phy_vel)
+	print(strv,txt_v.x,txt_v.y,
+	      txt_v.col)
 		
 	--print text array
  for x in all(txt_array) do
  	print(x.str,x.x,x.y,x.col)
  end
  
- if debug and out__d then
-	 print("out: t",84,118,0)
-	else
-		print("out: f",84,118,0)
-	end
 end
 -->8
---checks if txt-object is out
---of bounds in x direction
---and sets out_of_bounds flag
 function check_xbound(o,vel,tlen)
- local x_off=0
- if o.x > 127 
-  and vel > 0
-  then
-  o.out_xbound=true
-		o.x=127+x_off
-		sfx(0)
-	elseif o.x < 0-tlen
-	 and vel < 0
-	 then
-	 o.out_xbound=true
-	 o.x=0-tlen-x_off
-	 sfx(0)
-	else
-	 o.out_xboud=false
-	end
+ if o.x>127 or o.x<0 then
+ 	o.out_xbound=true
+ 	--sfx(0)
+ else
+  o.out_xbound=false
+ end
 end
 
---check if all text arrays
--- ar out of bounds
 function all_out_xbound(a)
 	all_=true
 	for x in all(a) do
@@ -142,6 +122,18 @@ function all_out_xbound(a)
 	end
 	return all_
 end
+
+--[[
+function debug_1(o)
+ if (not debug) then return end
+ local str=tostr(o.x).."\t"
+ str=str.."init: "..tostr(o.x_init).."\t"
+ str=str.."v: "..tostr(phy_vel).."\t"
+ str=str..tostr(o.out_xbound)
+ str=str.."\t"..tostr(all_out_xbound(txt_array))
+ printh(str)
+end
+--]]
 __label__
 77777777777777777777777777777777777777777777788878887788788877777777777777777777777777777777777777777777777777777777777777777777
 77777777777777777777777777777777777777777777778778777877778777777777777777777777777777777777777777777777777777777777777777777777
