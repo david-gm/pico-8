@@ -43,7 +43,7 @@ function _init()
           -txt_init_offset + i * 4,
           i*6,
           i)
-  t.y_inti=t.y
+  t.y_init=t.y
   t.x_init=t.x
  	add(txt_array,t)
  end
@@ -94,8 +94,8 @@ function _draw()
 
 	--print velocity
 	local strv=txt_v.str..tostr(phy_vel)
-	print(strv,txt_v.x,txt_v.y,
-	      txt_v.col)
+	--print(strv,txt_v.x,txt_v.y,
+	--      txt_v.col)
 		
 	--print text array
  for x in all(txt_array) do
@@ -123,7 +123,6 @@ function all_out_xbound(a)
 	return all_
 end
 
---[[
 function debug_1(o)
  if (not debug) then return end
  local str=tostr(o.x).."\t"
@@ -133,7 +132,6 @@ function debug_1(o)
  str=str.."\t"..tostr(all_out_xbound(txt_array))
  printh(str)
 end
---]]
 __label__
 77777777777777777777777777777777777777777777788878887788788877777777777777777777777777777777777777777777777777777777777777777777
 77777777777777777777777777777777777777777777778778777877778777777777777777777777777777777777777777777777777777777777777777777777
