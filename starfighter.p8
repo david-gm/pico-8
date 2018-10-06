@@ -7,14 +7,15 @@ function _init()
  debug=true
  
  setup()
- player=ship:new(127/2-5/2,127-6)
+ player=player:new(127/2-5/2,127-6)
  enemies={}
  local hp=3
  local is_spr=true
- add(enemies,enemy:new(8,8,8,8,is_spr,16,
-     0,0.3,hp))
- add(enemies,enemy:new(16,16,8,8,is_spr,16,
-     0,0.4,hp))
+ 
+ add(enemies,enemy:new(8,8,is_spr,16,
+     vec_st:new(8,8,0,0.8),hp,1))
+ add(enemies,enemy:new(8,8,is_spr,16,
+     vec_st:new(16,16,0,0.8),hp,1))
 end
 
 function _update60()
@@ -52,34 +53,36 @@ function setup()
   return v
  end
 
- ship={}
- function ship:new(x_,y_)
-  local s={}
-  setmetatable(s, self)
+ player={}
+ function player:new(x_,y_)
+  local p={}
+  setmetatable(p, self)
   self.__index = self
-  s.w = 6
-  s.h = 6
-  s.st = vec_st:new(x_,y_,1.5,1.5)
-  s.spr_ = 1 --sprite number
-  s.dmg = 1
-  s.shotfrq_init=10
-  s.shotfrq=0
-  s.shot_enable=true
-  s.shots={}
-  return s
+  p.w = 6
+  p.h = 6
+  p.st = vec_st:new(x_,y_,2,2)
+  p.spr_ = 1 --sprite number
+  p.hp = 3
+  p.dmg = 1
+  p.shotfrq_init=7
+  p.shotfrq=0
+  p.shot_enable=true
+  p.shots={}
+  return p
  end
  
  enemy={}
- function enemy:new(x,y,w,h,is_spr,spr_,vx,vy,hp)
+ function enemy:new(w,h,is_spr,spr_,vec_st_,hp,dmg)
   local e={}
   setmetatable(e, self)
   self.__index = self
   e.w = w
   e.h = h
-  e.st = vec_st:new(x,y,vx,vy)
+  e.st = vec_st_
   e.is_spr = is_spr --whether spr is used
   e.spr_ = spr_ --sprite number
   e.hp = hp
+  e.dmg = dmg
   return e
  end
 end
@@ -148,7 +151,7 @@ function update_player_states()
  end
  
  player.st.x=mid(0,player.st.x,127-player.w)
- player.st.y=mid(0,player.st.y,127-player.h)
+ player.st.y=mid(7,player.st.y,127-player.h)
  for s in all(player.shots) do
   s.st.y+=s.st.vy
  end
@@ -168,6 +171,19 @@ function player_cd()
    end
   end
  end
+ 
+ -- check player collison with
+ -- enemy
+ for e in all(enemies) do
+ 	if general_cd(player,e) then
+ 		update_player_hp(e.dmg)
+ 		del(enemies,e)
+ 	end
+ end
+end
+
+function update_player_hp(dmg)
+	player.hp-=dmg
 end
 
 function draw_player()
@@ -176,6 +192,13 @@ function draw_player()
  for s in all(player.shots) do
   line(s.st.x,s.st.y,s.st.x,s.st.y+s.h,12)
  end
+ 
+ -- draw health
+ rect(113,0,127,5,12) 
+ for l=0,player.hp-1 do
+  local fact = l*4
+	 rectfill(115+fact,2,117+fact,3,7)
+	end
 end
 -->8
 -- enemy specifics
