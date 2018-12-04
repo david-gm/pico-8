@@ -4,54 +4,44 @@ __lua__
 -- star-fighter
 -- by david gmeindl
 function _init()
- debug=true
+	debug=true
+	⧗={g=0}
  
- stars={}
+	stars={}
  
  for i=1,16 do
- 	add(stars,{
- 		x=rnd(128),
+	 add(stars,{
+		 x=rnd(128),
    y=rnd(128),
    s=rnd(5)/5+1,
    c=get_★_c()
- 	})
+	 })
  end
  
  setup()
- player=player:new(127/2-5/2,ui_s.y1-6)
- enemies={}
- local hp=3
- local is_spr=true
- 
- add(enemies,enemy:new(8,8,is_spr,16,
-     vec_st:new(8,8,0,0.8),hp,1))
- add(enemies,enemy:new(8,8,is_spr,16,
-     vec_st:new(16,16,0,0.8),hp,1))
+ init_lvl1()
+ change_gamestate("start")
 end
 
 function _update60()
- controls()
- 
- -- update stars
- for s in all(stars) do
-  s.y+=s.s
- 	if s.y > 128 then
- 	 s.x=rnd(128)
- 	 s.y=0
- 	 s.s=rnd(5)/5+1
- 	 s.c=get_★_c()
- 	end
- end
- 
- -- update states
- update_player_states()  
- update_enemy_states()
- 
- collision_detect()
 end
 
 function _draw()
- cls(0)
+end
+
+function update_game()
+	update_timers()
+	controls()
+	update_stars()
+ 
+	update_player_states()  
+	update_enemy_states()
+ 
+	collision_detect()
+end
+
+function draw_game()
+	cls(0)
  for s in all(stars) do
   pset(s.x,s.y,s.c)
  end
@@ -60,16 +50,77 @@ function _draw()
  draw_enemies()
  draw_ui()
 end
+
+function update_timers()
+	⧗.g+=1
+	if ⧗.g==60 then
+		⧗.g=0
+	end
+end
+
+function update_start()
+	update_timers()
+	if (btnp(🅾️))	change_gamestate('game')
+end
+
+function draw_start()
+	cls(4)
+	--[
+ for s in all(stars) do
+  pset(s.x,s.y,s.c)
+ end
+ --]
+ draw_player()
+ print_mids("press 🅾️ to start",128/2-4,12)
+end
+
+function update_gameover()
+	update_timers()
+	if btnp(🅾️) then
+		reinit_lvl(0)
+		change_gamestate('game')
+	end
+end
+
+function draw_gameover()
+ cls(0)
+	print_mids("press 🅾️ to restart",128/2-4,12)
+end
+
+function change_gamestate(state)
+	if state=="start" then
+		_draw=draw_start
+		_update60=update_start
+	elseif state=="game" then
+		_draw=draw_game
+		_update60=update_game
+	elseif state=="gameover" then
+		_draw=draw_gameover
+		_update60=update_gameover
+	end
+end
+
+function reinit_lvl(lvl)
+	if lvl==0 then
+		init_lvl1()		
+	end
+end
+
+function init_lvl1()
+	player=player:new(127/2-5/2,ui_s.y1-6)
+ enemies={}
+ create_enemies(0)
+end
 -->8
--- classes and general functions
+-- game, classes and general functions
 
 function setup()
  --ui_size
  ui_s={
- 	x1=0,
- 	y1=121,
- 	x2=127,
- 	y2=127,
+	 x1=0,
+	 y1=121,
+	 x2=127,
+	 y2=127,
  }
 
  --vector_state
@@ -104,14 +155,13 @@ function setup()
  end
  
  enemy={}
- function enemy:new(w,h,is_spr,spr_,vec_st_,hp,dmg)
+ function enemy:new(w,h,spr_,vec_st_,hp,dmg)
   local e={}
   setmetatable(e, self)
   self.__index = self
   e.w = w
   e.h = h
   e.st = vec_st_
-  e.is_spr = is_spr --whether spr is used
   e.spr_ = spr_ --sprite number
   e.hp = hp
   e.dmg = dmg
@@ -156,6 +206,18 @@ function general_cd(a,e)
  return false
 end
 
+function update_stars()
+	for s in all(stars) do
+  s.y+=s.s
+	 if s.y > 128 then
+	  s.x=rnd(128)
+	  s.y=0
+	  s.s=rnd(5)/5+1
+	  s.c=get_★_c()
+	 end
+ end
+end
+
 function get_★_c()
  local	r=flr(rnd(2))
  if (r == 0) return 7
@@ -179,16 +241,26 @@ function draw_ui()
 	end
 end
 
+function print_mid(txt,y,col)
+ local col=col or 7
+	print(txt,(#txt*4)/2,y,col)
+end
+
+-- print mid with shadow
+function print_mids(txt,y,col)
+	print_mid(txt,y-1,0)
+	print_mid(txt,y,col)
+end
+
 function debugtxt(txt)
- --if (not debug) return
+ if (not debug) return
  print(txt,0,0,2)
 end
 -->8
 --player specifics
 function add_shot(x_,y_)
  local s = {
-  h=4,
-  w=1,
+  h=4,w=1,
   st=vec_st:new(x_,y_,0,-3)
  }
  add(player.shots,s)
@@ -223,8 +295,8 @@ function player_cd()
   -- ememy
   for e in all(enemies) do
    if general_cd(s,e) then
-    update_enemy_health(e,player.dmg)
-    del(player.shots,s)
+	update_enemy_health(e,player.dmg)
+	del(player.shots,s)
    end
   end
  end
@@ -232,15 +304,18 @@ function player_cd()
  -- check player collison with
  -- enemy
  for e in all(enemies) do
- 	if general_cd(player,e) then
- 		update_player_hp(e.dmg)
- 		del(enemies,e)
- 	end
+	 if general_cd(player,e) then
+		 update_player_hp(e.dmg)
+		 update_enemy_health(e,player.dmg)
+	 end
  end
 end
 
 function update_player_hp(dmg)
 	player.hp-=dmg
+	if player.hp<=0 then
+	 change_gamestate("gameover")
+	end
 end
 
 function draw_player()
@@ -264,8 +339,10 @@ function enemy_cd()
  for e in all(enemies) do
   --check whether screen boundaries
   --are reached
-  if (e.st.x-e.w>128) del(enemies,e)
-  if (e.st.y+e.h>ui_s.y1) del(enemies,e)  
+  if e.st.x-e.w>128 or
+	 e.st.y>ui_s.y1 then
+			del(enemies,e)
+		end
  end
 end
 
@@ -273,16 +350,32 @@ function update_enemy_health(e,dmg)
  e.hp-=dmg
  if e.hp<=0 then
   del(enemies,e)
+  sfx(1)
  end
 end
 
 function draw_enemies()
  for e in all(enemies) do 
-  if e.is_spr then
+  if e.spr_ then
    spr(e.spr_,e.st.x,e.st.y)
   end
  end
  --debugtxt('#e: '..#enemies)
+end
+
+function create_enemies(lvl)
+ if lvl==0 then
+	 local hp=2
+  local dmg=1
+  add(enemies,enemy:new(8,8,16,
+	  vec_st:new(8,8,0,0.8),hp,dmg))
+  add(enemies,enemy:new(8,8,16,
+	  vec_st:new(17,16,0,0.8),hp,dmg))
+	 add(enemies,enemy:new(8,8,16,
+		 vec_st:new(26,16,0,0.8),hp,dmg))
+	 add(enemies,enemy:new(8,8,16,
+		 vec_st:new(35,8,0,0.8),hp,dmg))
+	end
 end
 __gfx__
 00000000000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -302,4 +395,5 @@ __gfx__
 05550550000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00555500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-000100002a0502405020050180400a030060200302001010010100110004100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000200002a0502405020050180400a030060200302001010010100110004100000000000000000000000000000000293002730025300233001d30014300093000330002300011000000000000000000000000000
+000200001f6401f6401e6401c6401963016620116200c620066200162002600016000260003600016000460002600016000000000000000000000000000000000000000000000000000000000000000000000000
