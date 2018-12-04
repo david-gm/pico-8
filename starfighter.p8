@@ -64,7 +64,7 @@ function update_start()
 end
 
 function draw_start()
-	cls(4)
+	cls(1)
 	--[
  	for s in all(stars) do
   		pset(s.x,s.y,s.c)
@@ -83,7 +83,7 @@ function update_gameover()
 end
 
 function draw_gameover()
-	cls(4)
+	cls(1)
 	print_mids("press 🅾️ to restart",128/2-4,12)
 end
 
