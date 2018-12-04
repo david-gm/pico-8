@@ -87,7 +87,8 @@ end
 
 function draw_gameover()
 	cls(1)
-	print_mids("press 🅾️ to restart",128/2-4,12)
+	print_mids("your score: "..score,64-15,8)
+	print_mids("press 🅾️ to restart",64-4,12)
 end
 
 function change_gamestate(state)
@@ -172,6 +173,10 @@ function setup()
 		e.points = p
 		return e
 	end
+	--formations
+	form={
+		halfcircle_bot={{-15,0},{-5,10},{5,10},{15,0}}
+	}
 end
 
 function controls()
@@ -371,17 +376,15 @@ end
 
 function create_enemies(lvl)
 	if lvl==0 then
-		local hp=1
-		local dmg=1
-		local p=1 --points
-  add(enemies,enemy:new(8,8,16,
-		 vec_st:new(8,8,0,0.8),hp,dmg,p))
-		add(enemies,enemy:new(8,8,16,
-	  vec_st:new(17,16,0,0.8),hp,dmg,p))
-	 add(enemies,enemy:new(8,8,16,
-			vec_st:new(26,16,0,0.8),hp,dmg,p))
-	 add(enemies,enemy:new(8,8,16,
-			vec_st:new(35,8,0,0.8),hp,dmg,p))
+		local f=form["halfcircle_bot"]
+		for i=1,#f do
+			local _x=64+f[i][1]
+			local _y=0+f[i][2]
+			
+			add(enemies,enemy:new(8,8,16,
+			--state,life,dmg,points
+				vec_st:new(_x,_y,0,0.8),1,1,10))
+		end
 	end
 end
 __gfx__
