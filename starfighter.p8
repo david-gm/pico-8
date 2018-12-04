@@ -5,11 +5,11 @@ __lua__
 -- by david gmeindl
 function _init()
 	debug=true
+	
 	⧗={g=0}
- 
+	score=0
 	stars={}
- 
- 	for i=1,16 do
+	for i=1,16 do
 		add(stars,{
 			x=rnd(128),
 			y=rnd(128),
@@ -66,12 +66,15 @@ end
 function draw_start()
 	cls(1)
 	--[
- 	for s in all(stars) do
-  		pset(s.x,s.y,s.c)
- 	end
- 	--]
-	draw_player()
-	print_mids("press 🅾️ to start",128/2-4,12)
+ for s in all(stars) do
+		pset(s.x,s.y,s.c)
+ end
+	--]
+	--draw starship
+	rectfill(0,64-27,127,64+12,0)
+	spr(player.spr_,32,64-15)
+	print_mids("starfighter",64-15,8)
+	print_mids("press 🅾️ to start",64-4,12)
 end
 
 function update_gameover()
@@ -107,6 +110,7 @@ function reinit_lvl(lvl)
 end
 
 function init_lvl1()
+	score=0
 	player=player:new(127/2-5/2,ui_s.y1-6)
 	enemies={}
 	create_enemies(0)
@@ -126,7 +130,7 @@ function setup()
 	--vector_state
 	vec_st={}
 	function vec_st:new(x_,y_,vx_,vy_)
-  		local v={}
+		local v={}
 		setmetatable(v, self)
 		self.__index = self
 		v.x = x_
@@ -134,10 +138,10 @@ function setup()
 		v.vx = vx_ --velocity x
 		v.vy = vy_ --velocity y
 		return v
- 	end
+	end
 
- 	player={}
- 	function player:new(x_,y_)
+	player={}
+	function player:new(x_,y_)
 		local p={}
 		setmetatable(p, self)
 		self.__index = self
@@ -155,8 +159,8 @@ function setup()
 	end
  
 	enemy={}
- 	function enemy:new(w,h,spr_,vec_st_,hp,dmg)
-  		local e={}
+	function enemy:new(w,h,spr_,vec_st_,hp,dmg,p)
+		local e={}
 		setmetatable(e, self)
 		self.__index = self
 		e.w = w
@@ -165,6 +169,7 @@ function setup()
 		e.spr_ = spr_ --sprite number
 		e.hp = hp
 		e.dmg = dmg
+		e.points = p
 		return e
 	end
 end
@@ -195,25 +200,25 @@ function general_cd(a,e)
  
 	-- compare from bottom up to top
 	if (a.st.y <= e.st.y+e.h  --cmp a top edge
- 		and a.st.y+a.h >= e.st.y) --cmp a bottom edge
- 		-- compare from left to right
- 		and (a.st.x+a.w >= e.st.x  --cmp a right edge
- 		and  a.st.x <= e.st.x+e.w) --cmp a left edge
+		and a.st.y+a.h >= e.st.y) --cmp a bottom edge
+ 	-- compare from left to right
+		and (a.st.x+a.w >= e.st.x  --cmp a right edge
+ 	and  a.st.x <= e.st.x+e.w) --cmp a left edge
  	then
-  		return true
- 	end
- 	return false
+			return true
+	end
+	return false
 end
 
 function update_stars()
 	for s in all(stars) do
-  		s.y+=s.s
-	 	if s.y > 128 then
-	  		s.x=rnd(128)
-	  		s.y=0
-	  		s.s=rnd(5)/5+1
-	  		s.c=get_★_c()
-	 	end
+		s.y+=s.s
+		if s.y > 128 then
+   s.x=rnd(128)
+   s.y=0
+   s.s=rnd(5)/5+1
+   s.c=get_★_c()
+	 end
 	end
 end
 
@@ -238,11 +243,12 @@ function draw_ui()
 		local fact = l*5
 		rectfill(112+fact,124,115+fact,125,12)
 	end
+	print(score,2,122,12)
 end
 
 function print_mid(txt,y,col)
  local col=col or 7
-	print(txt,(#txt*4)/2,y,col)
+	print(txt,64-(#txt*4)/2,y,col)
 end
 
 -- print mid with shadow
@@ -258,47 +264,47 @@ end
 -->8
 --player specifics
 function add_shot(x_,y_)
- 	local s = {
-  		h=4,w=1,
-  		st=vec_st:new(x_,y_,0,-3)
- 	}
- 	add(player.shots,s)
+	local s = {
+ 	h=4,w=1,
+		st=vec_st:new(x_,y_,0,-3)
+	}
+	add(player.shots,s)
 end
 
 function update_player_states()
 	-- update shot frequency
- 	if not player.shot_enable then
-  		player.shotfrq-=1
-  		-- enable shot again
-  		if player.shotfrq<0 then
-   			player.shot_enable=true
-   			-- prevent underflow
-   			player.shotfrq=-1
-  		end
+	if not player.shot_enable then
+		player.shotfrq-=1
+  	-- enable shot again
+  	if player.shotfrq<0 then
+			   player.shot_enable=true
+				-- prevent underflow
+				player.shotfrq=-1
+			end
 	end
  
- 	player.st.x=mid(0,player.st.x,127-player.w)
- 	player.st.y=mid(0,player.st.y,ui_s.y1-player.h)
- 	for s in all(player.shots) do
-  		s.st.y+=s.st.vy
- 	end
+	player.st.x=mid(0,player.st.x,127-player.w)
+	player.st.y=mid(0,player.st.y,ui_s.y1-player.h)
+	for s in all(player.shots) do
+		s.st.y+=s.st.vy
+ end
 end
 
 function player_cd()
 	-- detect if shots collided
- 	-- with border
- 	for i=#player.shots,1,-1 do
-  		local s=player.shots[i]
-  		if (s.st.y<0) del(player.shots,s)
- 			-- check shot collision with 
-  			-- ememy
-  			for e in all(enemies) do
-   				if general_cd(s,e) then
-					update_enemy_health(e,player.dmg)
-					del(player.shots,s)
-   				end
-  			end
- 	end
+	-- with border
+	for i=#player.shots,1,-1 do
+		local s=player.shots[i]
+		if (s.st.y<0) del(player.shots,s)
+		-- check shot collision with 
+		-- ememy
+		for e in all(enemies) do
+			if general_cd(s,e) then
+				update_enemy_health(e,player.dmg)
+				del(player.shots,s)
+			end
+		end
+	end
  
 	-- check player collison with
 	-- enemy
@@ -319,61 +325,63 @@ end
 
 function draw_player()
 	spr(player.spr_,player.st.x,player.st.y)
- 	-- draw shots
- 	for s in all(player.shots) do
-  		line(s.st.x,s.st.y,s.st.x,s.st.y+s.h,12)
- 	end
+ -- draw shots
+	for s in all(player.shots) do
+		line(s.st.x,s.st.y,s.st.x,s.st.y+s.h,12)
+ end
 end
 -->8
 -- enemy specifics
 
 function update_enemy_states()
 	for e in all(enemies) do
-  		e.st.x+=e.st.vx
-  		e.st.y+=e.st.vy
- 	end
+		e.st.x+=e.st.vx
+		e.st.y+=e.st.vy
+ end
 end
 
 function enemy_cd()
- 	for e in all(enemies) do
-  		--check whether screen boundaries
-  		--are reached
-  		if e.st.x-e.w>128 or
-	 		e.st.y>ui_s.y1 then
+	for e in all(enemies) do
+ 	--check whether screen boundaries
+  --are reached
+		if e.st.x-e.w>128 or
+	    e.st.y>ui_s.y1 then
 			del(enemies,e)
 		end
- 	end
+ end
 end
 
 function update_enemy_health(e,dmg)
  	e.hp-=dmg
  	if e.hp<=0 then
-  		del(enemies,e)
-  		sfx(1)
+			del(enemies,e)
+			score+=e.points
+			sfx(1)
  	end
 end
 
 function draw_enemies()
- 	for e in all(enemies) do 
-  		if e.spr_ then
-   			spr(e.spr_,e.st.x,e.st.y)
-  		end
+ for e in all(enemies) do
+ 	if e.spr_ then
+  	spr(e.spr_,e.st.x,e.st.y)
  	end
+ end
  	--debugtxt('#e: '..#enemies)
 end
 
 function create_enemies(lvl)
 	if lvl==0 then
-		local hp=2
+		local hp=1
 		local dmg=1
-  		add(enemies,enemy:new(8,8,16,
-			vec_st:new(8,8,0,0.8),hp,dmg))
+		local p=1 --points
+  add(enemies,enemy:new(8,8,16,
+		 vec_st:new(8,8,0,0.8),hp,dmg,p))
 		add(enemies,enemy:new(8,8,16,
-	  		vec_st:new(17,16,0,0.8),hp,dmg))
-	 	add(enemies,enemy:new(8,8,16,
-			vec_st:new(26,16,0,0.8),hp,dmg))
-	 	add(enemies,enemy:new(8,8,16,
-			vec_st:new(35,8,0,0.8),hp,dmg))
+	  vec_st:new(17,16,0,0.8),hp,dmg,p))
+	 add(enemies,enemy:new(8,8,16,
+			vec_st:new(26,16,0,0.8),hp,dmg,p))
+	 add(enemies,enemy:new(8,8,16,
+			vec_st:new(35,8,0,0.8),hp,dmg,p))
 	end
 end
 __gfx__
