@@ -7,7 +7,7 @@ function _init()
 	debug_msg=true
 	
 	⧗={
-		g={f=0,s=0,m=0,t="0.0.0"}
+		g={f=0,s=0,m=0,t="0:0:0"}
 	}
 	score=0
 	stars={}
@@ -46,7 +46,8 @@ end
 
 function draw_game()
 	cls(0)
-	debugtxt(⧗.g.t)
+	--debugtxt(⧗.g.t)
+	debugtxt(my_txt)
 	for s in all(stars) do
 		pset(s.x,s.y,s.c)
 	end
@@ -54,6 +55,7 @@ function draw_game()
 	draw_player() 
 	draw_enemies()
 	draw_ui()
+	time_printer()
 end
 
 
@@ -80,7 +82,7 @@ end
 
 function update_gameover()
 	if btnp(🅾️) then
-		reinit_lvl(0)
+		reinit_lvl()
 		change_gamestate('game')
 	end
 	update_timers()
@@ -108,6 +110,7 @@ function change_gamestate(state)
 end
 
 function reinit_lvl()
+	--reset_timers()
 	if lvl==1 then
 		init_lvl1()		
 	end
@@ -118,6 +121,10 @@ function init_lvl1()
 	player=player:new(127/2-5/2,ui_s.y1-6)
 	enemies={}
 	lvl=1
+	e_swarm={
+		{"meteor_lvl1",form.arc,"linear","0:0:0",{64,-64}},
+		{"meteor_lvl2",form.arc,"sinus","0:4:0",{32,-64}}
+	}
 end
 -->8
 -- game, classes and general functions
@@ -176,13 +183,14 @@ function setup()
 		e.points = p
 		return e
 	end
-	--formations
+	--formations & paths
 	form={
 		arc={{-25,0},{-15,10},{0,15},{15,10},{25,0}}
 	}
 end
 
 function update_timers()
+	⧗.g.t=⧗.g.m..":"..⧗.g.s..":"..⧗.g.f
 	⧗.g.f+=1
 	if ⧗.g.f==60 then
 		⧗.g.f=0
@@ -192,12 +200,11 @@ function update_timers()
 		⧗.g.s=0
 		⧗.g.m+=1
 	end
-	⧗.g.t=⧗.g.m..":"..⧗.g.s..":"..⧗.g.f
 end
 
 function reset_timers()
 	⧗={
-		g={f=0,s=0,m=0,t="0.0.0"}
+		g={f=0,s=0,m=0,t="0:0:0"}
 	}
 end
 
@@ -287,6 +294,11 @@ end
 function debugtxt(txt)
 	if (not debug_msg) return
 	print(txt,0,0,2)
+end
+
+function time_printer()
+	if (not debug_msg) return
+	print(⧗.g.t,127-6*5,0,11)
 end
 -->8
 --player specifics
@@ -397,24 +409,27 @@ function draw_enemies()
 end
 
 function update_create_enemies()
-	if lvl==1 then
-		if ⧗.g.t=="0:0:30" then
- 		local f=form.arc
- 		for i=1,#f do
- 			local _x=64+f[i][1]
- 			local _y=-50+f[i][2]
- 			enemy_templates("metroid_lvl1",_x,_y)
- 		end
+	for s in all(e_swarm) do
+		if ⧗.g.t==s[4] then
+			my_txt=i
+			local _form=s[2]
+			-- path: todo
+			local _path=s[3]
+			for coords_f in all(_form) do
+				local _x=s[5][1]+coords_f[1]
+				local _y=s[5][2]+coords_f[2]
+				enemy_templates(s[1],_x,_y)
+			end
 		end
 	end
 end
 
 function enemy_templates(e_str,_x,_y)
-	if e_str=="metroid_lvl1" then
+	if e_str=="meteor_lvl1" then
 		add(enemies,enemy:new(8,8,16,
 			--state,life,dmg,points
 			vec_st:new(_x,_y,0,0.8),1,1,10))
-	elseif e_str=="metroid_lvl2" then
+	elseif e_str=="meteor_lvl2" then
 		add(enemies,enemy:new(8,8,16,
 			--state,life,dmg,points
 			vec_st:new(_x,_y,0,1.0),2,1,20))
