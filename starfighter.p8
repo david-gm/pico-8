@@ -4,9 +4,11 @@ __lua__
 -- star-fighter
 -- by david gmeindl
 function _init()
-	debug=true
+	debug_msg=true
 	
-	⧗={g=0}
+	⧗={
+		g={f=0,s=0,m=0,t="0.0.0"}
+	}
 	score=0
 	stars={}
 	for i=1,16 do
@@ -19,7 +21,8 @@ function _init()
 	end
  
 	setup()
-	init_lvl1()
+	lvl=1
+	reinit_lvl()
 	change_gamestate("start")
 end
 
@@ -30,18 +33,20 @@ function _draw()
 end
 
 function update_game()
-	update_timers()
 	controls()
 	update_stars()
- 
+  
 	update_player_states()  
+ update_create_enemies()
 	update_enemy_states()
  
 	collision_detect()
+	update_timers()
 end
 
 function draw_game()
 	cls(0)
+	debugtxt(⧗.g.t)
 	for s in all(stars) do
 		pset(s.x,s.y,s.c)
 	end
@@ -51,20 +56,16 @@ function draw_game()
 	draw_ui()
 end
 
-function update_timers()
-	⧗.g+=1
-	if ⧗.g==60 then
-		⧗.g=0
-	end
-end
+
 
 function update_start()
-	update_timers()
 	if (btnp(🅾️)) change_gamestate('game')
+	update_timers()
 end
 
 function draw_start()
 	cls(1)
+	debugtxt(⧗.g.t)
 	--[
  for s in all(stars) do
 		pset(s.x,s.y,s.c)
@@ -78,20 +79,22 @@ function draw_start()
 end
 
 function update_gameover()
-	update_timers()
 	if btnp(🅾️) then
 		reinit_lvl(0)
 		change_gamestate('game')
 	end
+	update_timers()
 end
 
 function draw_gameover()
 	cls(1)
+	debugtxt(⧗.g.t)
 	print_mids("your score: "..score,64-15,8)
 	print_mids("press 🅾️ to restart",64-4,12)
 end
 
 function change_gamestate(state)
+	reset_timers()
 	if state=="start" then
 		_draw=draw_start
 		_update60=update_start
@@ -104,8 +107,8 @@ function change_gamestate(state)
 	end
 end
 
-function reinit_lvl(lvl)
-	if lvl==0 then
+function reinit_lvl()
+	if lvl==1 then
 		init_lvl1()		
 	end
 end
@@ -114,7 +117,7 @@ function init_lvl1()
 	score=0
 	player=player:new(127/2-5/2,ui_s.y1-6)
 	enemies={}
-	create_enemies(0)
+	lvl=1
 end
 -->8
 -- game, classes and general functions
@@ -175,7 +178,26 @@ function setup()
 	end
 	--formations
 	form={
-		halfcircle_bot={{-15,0},{-5,10},{5,10},{15,0}}
+		arc={{-25,0},{-15,10},{0,15},{15,10},{25,0}}
+	}
+end
+
+function update_timers()
+	⧗.g.f+=1
+	if ⧗.g.f==60 then
+		⧗.g.f=0
+		⧗.g.s+=1
+	end
+	if ⧗.g.s==60 then
+		⧗.g.s=0
+		⧗.g.m+=1
+	end
+	⧗.g.t=⧗.g.m..":"..⧗.g.s..":"..⧗.g.f
+end
+
+function reset_timers()
+	⧗={
+		g={f=0,s=0,m=0,t="0.0.0"}
 	}
 end
 
@@ -263,7 +285,7 @@ function print_mids(txt,y,col)
 end
 
 function debugtxt(txt)
-	if (not debug) return
+	if (not debug_msg) return
 	print(txt,0,0,2)
 end
 -->8
@@ -374,17 +396,28 @@ function draw_enemies()
  	--debugtxt('#e: '..#enemies)
 end
 
-function create_enemies(lvl)
-	if lvl==0 then
-		local f=form["halfcircle_bot"]
-		for i=1,#f do
-			local _x=64+f[i][1]
-			local _y=0+f[i][2]
-			
-			add(enemies,enemy:new(8,8,16,
-			--state,life,dmg,points
-				vec_st:new(_x,_y,0,0.8),1,1,10))
+function update_create_enemies()
+	if lvl==1 then
+		if ⧗.g.t=="0:0:30" then
+ 		local f=form.arc
+ 		for i=1,#f do
+ 			local _x=64+f[i][1]
+ 			local _y=-50+f[i][2]
+ 			enemy_templates("metroid_lvl1",_x,_y)
+ 		end
 		end
+	end
+end
+
+function enemy_templates(e_str,_x,_y)
+	if e_str=="metroid_lvl1" then
+		add(enemies,enemy:new(8,8,16,
+			--state,life,dmg,points
+			vec_st:new(_x,_y,0,0.8),1,1,10))
+	elseif e_str=="metroid_lvl2" then
+		add(enemies,enemy:new(8,8,16,
+			--state,life,dmg,points
+			vec_st:new(_x,_y,0,1.0),2,1,20))
 	end
 end
 __gfx__
@@ -405,5 +438,5 @@ __gfx__
 0555c550000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00555500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-00010000280201c050230400e0600c2000c2001b530145500c2000c20004100000000000000000000000000000000293002730025300010001d30014300093000330002300011000000000000000000000000000
-000200001f6401f6401e6401c6401963016620116200c620066200162002600016000260003600016000460002600016000000000000000000000000000000000000000000000000000000000000000000000000
+000100002a0301a0401e0400e0600c2000c20023520185400c2000c20004100000000000000000000000000000000293002730025300010001d30014300093000330002300011000000000000000000000000000
+000300000b6400b6300a630096400f630096200663004610046200c61006610046100260003600016000460002600016000000000000000000000000000000000000000000000000000000000000000000000000
