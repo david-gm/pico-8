@@ -7,7 +7,8 @@ function _init()
 	debug_msg=true
 	
 	⧗={
-		g={f=0,s=0,m=0,t="0:0:0"}
+		g={f=0,s=0,m=0,t="0:0:0"},
+		lvl_init=nil
 	}
 	score=0
 	stars={}
@@ -58,23 +59,37 @@ function draw_game()
 end
 
 function update_start()
-	if (btnp(🅾️)) change_gamestate('game')
-	update_timers()
+	if btnp(🅾️) then
+	 _draw=draw_lvl_init
+	 _update60=update_lvl_init
+	end
 end
 
 function draw_start()
 	cls(1)
 	debugtxt(⧗.g.t)
-	--[
  for s in all(stars) do
 		pset(s.x,s.y,s.c)
  end
-	--]
 	--draw starship
 	rectfill(0,64-27,127,64+12,0)
 	spr(player.spr_,32,64-15)
-	print_mids("starfighter",64-15,8)
-	print_mids("press 🅾️ to start",64-4,12)
+	print_mids("starfighter",64-15,8,2)
+	print_mids("press 🅾️ to start",64-4,12,1)
+end
+
+function update_lvl_init()
+ if (not ⧗.lvl_init) ⧗.lvl_init=0
+ ⧗.lvl_init+=1
+	if ⧗.lvl_init>90 then
+	 ⧗.lvl_init=nil
+		change_gamestate('game')
+	end
+end
+
+function draw_lvl_init()
+	cls(0)
+	print_mids("level "..lvl,64-4,3,5)
 end
 
 function update_gameover()
@@ -181,10 +196,12 @@ function setup()
 		return e
 	end
 	--formations & paths
+	--note: 4 pxls moved to the
+	-- left (x) because of size of enemy
 	form={
-		vline={{0,0},{0,-10},{0,-20},{0,-30}},
-		arc={{-25,0},{-15,10},{0,15},{15,10},{25,0}},
-		arc_top={{-25,0},{-15,-10},{0,-15},{15,-10},{25,0}},
+		vline={{-4,0},{-4,-10},{-4,-20},{-4,-30}},
+		arc={{-29,0},{-19,10},{-4,15},{11,10},{21,0}},
+		arc_top={{-29,0},{-19,-10},{-4,-15},{11,-10},{21,0}}
 	}
 end
 
@@ -285,8 +302,9 @@ function print_mid(txt,y,col)
 end
 
 -- print mid with shadow
-function print_mids(txt,y,col)
-	print_mid(txt,y-1,0)
+function print_mids(txt,y,col,col_shadow)
+	local col_shadow=col_shadow or 0
+	print_mid(txt,y-1,col_shadow)
 	print_mid(txt,y,col)
 end
 
