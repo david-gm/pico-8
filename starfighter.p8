@@ -5,7 +5,6 @@ __lua__
 -- by david gmeindl
 function _init()
 	debug_msg=true
-	
 	⧗={
 		g={f=0,s=0,m=0,t="0:0:0"},
 		lvl_init=nil
@@ -38,7 +37,7 @@ function update_game()
 	update_stars()
   
 	update_player_states()  
- update_create_enemies()
+	update_create_enemies()
 	update_enemy_states()
  
 	collision_detect()
@@ -48,6 +47,14 @@ end
 function draw_game()
 	cls(0)
 	--debugtxt(⧗.g.t)
+	--debugtxt(#e_swarm[2][2],22)
+	--[[
+	local _off_=0
+	for c in all(e_swarm[1][2]) do
+		debugpos(c,22+_off_)
+		_off_+=7
+	end
+	--]]
 	for s in all(stars) do
 		pset(s.x,s.y,s.c)
 	end
@@ -130,13 +137,16 @@ end
 
 function init_lvl1()
 	score=0
-	player=player:new(127/2-5/2,ui_s.y1-6)
+	player=player:new((127-7)/2,ui_s.y1-6)
 	enemies={}
 	e_swarm={
 		{"meteor_l1",form.vline,"linear","0:0:0",{64,-64}},
-		{"meteor_l1",form.arc,"linear","0:2:0",{64,-64}},
-		{"meteor_l1",form.arc_top,"linear","0:4:0",{96,-64}},
-		{"meteor_l2",form.arc,"sinus","0:7:0",{32,-64}}
+		{"meteor_l1",form.arc,"linear","0:4:0",{64,-64}},
+		{"meteor_l1",form.arc_top,"linear","0:6:0",{96,-64}},
+		{"meteor_l1",form.arc_top,"linear","0:6:0",{32,-64}},
+		{"meteor_l1",create_circle(25,4),"linear","0:9:0",{96,-64}},
+		{"meteor_l1",create_circle(25,4),"linear","0:9:0",{32,-64}},
+		{"meteor_l2",form.arc,"sinus","0:12:0",{33,-64}}
 	}
 end
 -->8
@@ -206,7 +216,6 @@ function setup()
 end
 
 function update_timers()
-	⧗.g.t=⧗.g.m..":"..⧗.g.s..":"..⧗.g.f
 	⧗.g.f+=1
 	if ⧗.g.f==60 then
 		⧗.g.f=0
@@ -216,6 +225,7 @@ function update_timers()
 		⧗.g.s=0
 		⧗.g.m+=1
 	end
+	⧗.g.t=⧗.g.m..":"..⧗.g.s..":"..⧗.g.f
 end
 
 function reset_timers()
@@ -308,9 +318,14 @@ function print_mids(txt,y,col,col_shadow)
 	print_mid(txt,y,col)
 end
 
-function debugtxt(txt)
+function debugtxt(txt,y)
 	if (not debug_msg) return
-	print(txt,0,0,2)
+	local y_=y or 0
+	print(txt,0,y_,2)
+end
+
+function debugpos(coords,y)
+	debugtxt(coords[1].." "..coords[2],y)
 end
 
 function time_printer()
@@ -417,11 +432,11 @@ function update_enemy_health(e,dmg)
 end
 
 function draw_enemies()
- for e in all(enemies) do
- 	if e.spr_ then
-  	spr(e.spr_,e.st.x,e.st.y)
- 	end
- end
+	for e in all(enemies) do
+		if e.spr_ then
+			spr(e.spr_,e.st.x,e.st.y)
+		end
+	end
  	--debugtxt('#e: '..#enemies)
 end
 
@@ -450,6 +465,15 @@ function enemy_templates(e_str,_x,_y)
 			--state,life,dmg,points
 			vec_st:new(_x,_y,0,1.0),2,1,20))
 	end
+end
+
+function create_circle(r,n)
+	local a=1/n
+	local circ_f={}
+	for i=0,n-1 do
+		add(circ_f, {r*-sin(a*i),r*cos(a*i)})
+	end
+	return circ_f
 end
 __gfx__
 00000000000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
