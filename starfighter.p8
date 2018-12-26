@@ -5,6 +5,7 @@ __lua__
 -- by david gmeindl
 function _init()
 	debug_msg=true
+	debug_invince=true
 	⧗={
 		g={f=0,s=0,m=0,t="0:0:0"},
 		lvl_init=nil
@@ -16,7 +17,7 @@ function _init()
 			x=rnd(128),
 			y=rnd(128),
 			s=rnd(5)/5+1,
-			c=get_★_c()
+			c=get★c()
 		})
 	end
  
@@ -59,8 +60,8 @@ function draw_game()
 		pset(s.x,s.y,s.c)
 	end
 	draw_map()
-	draw_player() 
 	draw_enemies()
+	draw_player()
 	draw_ui()
 	time_printer()
 end
@@ -88,7 +89,7 @@ end
 function update_lvl_init()
  if (not ⧗.lvl_init) ⧗.lvl_init=0
  ⧗.lvl_init+=1
-	if ⧗.lvl_init>90 then
+	if ⧗.lvl_init>60 then
 	 ⧗.lvl_init=nil
 		change_gamestate('game')
 	end
@@ -140,13 +141,18 @@ function init_lvl1()
 	player=player:new((127-7)/2,ui_s.y1-6)
 	enemies={}
 	e_swarm={
-		{"meteor_l1",form.vline,"linear","0:0:0",{64,-64}},
-		{"meteor_l1",form.arc,"linear","0:4:0",{64,-64}},
-		{"meteor_l1",form.arc_top,"linear","0:6:0",{96,-64}},
-		{"meteor_l1",form.arc_top,"linear","0:6:0",{32,-64}},
-		{"meteor_l1",create_circle(25,4),"linear","0:9:0",{96,-64}},
-		{"meteor_l1",create_circle(25,4),"linear","0:9:0",{32,-64}},
-		{"meteor_l2",form.arc,"sinus","0:12:0",{33,-64}}
+		{"met1",cfline(9,3,4,"v"),"linear","0:0:0",{64,-64}},
+		{"met1",cfline(9,5,4,"h"),"linear","0:2:0",{64,-64}},
+		{"met1",cfline(9,5,4,"dtlbr"),"linear","0:4:0",{64,-64}},
+		{"met1",cfline(9,5,4,"dtrbl"),"linear","0:4:0",{64,-64}},
+		--[[
+		{"met1",form.arc,"linear","0:4:0",{64,-64}},
+		{"met1",form.arc_top,"linear","0:6:0",{96,-64}},
+		{"met1",form.arc_top,"linear","0:6:0",{32,-64}},
+		{"met1",cfcircle(25,8),"linear","0:9:0",{96,-64}},
+		{"met1",cfcircle(25,8),"linear","0:9:0",{32,-64}},
+		{"met2",form.arc,"sinus","0:12:0",{33,-64}}
+		--]]
 	}
 end
 -->8
@@ -205,9 +211,6 @@ function setup()
 		e.points = p
 		return e
 	end
-	--formations & paths
-	--note: 4 pxls moved to the
-	-- left (x) because of size of enemy
 	form={
 		vline={{-4,0},{-4,-10},{-4,-20},{-4,-30}},
 		arc={{-29,0},{-19,10},{-4,15},{11,10},{21,0}},
@@ -235,7 +238,6 @@ function reset_timers()
 end
 
 function controls()
-
 	if(btn(⬅️))player.st.x-=player.st.vx
 	if(btn(➡️))player.st.x+=player.st.vx
 	if(btn(⬆️))player.st.y-=player.st.vy
@@ -277,12 +279,12 @@ function update_stars()
    s.x=rnd(128)
    s.y=0
    s.s=rnd(5)/5+1
-   s.c=get_★_c()
+   s.c=get★c()
 	 end
 	end
 end
 
-function get_★_c()
+function get★c()
 	local	r=flr(rnd(2))
 	if (r == 0) return 7
 	return 15
@@ -379,6 +381,7 @@ function player_cd()
  
 	-- check player collison with
 	-- enemy
+	if (debug_invince) return
 	for e in all(enemies) do
 		if general_cd(player,e) then
 			update_player_hp(e.dmg)
@@ -456,24 +459,52 @@ function update_create_enemies()
 end
 
 function enemy_templates(e_str,_x,_y)
-	if e_str=="meteor_l1" then
+	if e_str=="met1" then
 		add(enemies,enemy:new(8,8,16,
 			--state,life,dmg,points
-			vec_st:new(_x,_y,0,0.8),1,1,10))
-	elseif e_str=="meteor_l2" then
+			vec_st:new(_x,_y,0,0.5),1,1,10))
+	elseif e_str=="met2" then
 		add(enemies,enemy:new(8,8,17,
 			--state,life,dmg,points
 			vec_st:new(_x,_y,0,1.0),2,1,20))
 	end
 end
 
-function create_circle(r,n)
+-->8
+-- enemy formations
+
+function cfcircle(r,n)
 	local a=1/n
 	local circ_f={}
 	for i=0,n-1 do
-		add(circ_f, {r*-sin(a*i),r*cos(a*i)})
+		add(circ_f,{r*-sin(a*i),r*cos(a*i)})
 	end
 	return circ_f
+end
+
+-- s: spacing
+-- n: number
+-- xy_off: offset in x/y (enemy width,height/2)
+-- d: direction [v,h]
+-- 	v: vertical
+--		h: horizontal
+--		dtlbr: diagonal top left bottom right
+--		dtrbl: diagonal top right bottom left
+function cfline(s,n,xy_off,d)
+	local _line={}
+	for i=0,n-1 do
+		local _v=n*s*(i/n-1/2)
+	 if d=="v" then
+	 	add(_line,{-xy_off,i*s})
+	 elseif d=="h" then
+	 	add(_line,{_v,-xy_off})
+	 elseif d=="dtlbr" then
+			add(_line,{_v,_v})
+	 elseif d=="dtrbl" then
+	 	add(_line,{-_v-xy_off*2-1,_v})
+	 end
+	end
+	return _line
 end
 __gfx__
 00000000000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
