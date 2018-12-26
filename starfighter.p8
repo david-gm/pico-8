@@ -5,7 +5,7 @@ __lua__
 -- by david gmeindl
 function _init()
 	debug_msg=true
-	debug_invince=true
+	debug_invince=false
 	⧗={
 		g={f=0,s=0,m=0,t="0:0:0"},
 		lvl_init=nil
@@ -76,12 +76,12 @@ end
 function draw_start()
 	cls(1)
 	debugtxt(⧗.g.t)
- for s in all(stars) do
+	for s in all(stars) do
 		pset(s.x,s.y,s.c)
- end
+	end
 	--draw starship
 	rectfill(0,64-27,127,64+12,0)
-	spr(player.spr_,32,64-15)
+	spr(pl.spr_,32,64-15)
 	print_mids("starfighter",64-15,8,2)
 	print_mids("press 🅾️ to start",64-4,12,1)
 end
@@ -138,21 +138,23 @@ end
 
 function init_lvl1()
 	score=0
-	player=player:new((127-7)/2,ui_s.y1-6)
+	pl=pl:new((127-7)/2,ui_s.y1-6)
 	enemies={}
+	local _c8=cf_circ(25,8,4)
+	local _arcb5=cf_arc(25,5,4,"b")
+	local _arct5=cf_arc(25,5,4,"t")
 	e_swarm={
-		{"met1",cfline(9,3,4,"v"),"linear","0:0:0",{64,-64}},
-		{"met1",cfline(9,5,4,"h"),"linear","0:2:0",{64,-64}},
-		{"met1",cfline(9,5,4,"dtlbr"),"linear","0:4:0",{64,-64}},
-		{"met1",cfline(9,5,4,"dtrbl"),"linear","0:4:0",{64,-64}},
-		--[[
-		{"met1",form.arc,"linear","0:4:0",{64,-64}},
-		{"met1",form.arc_top,"linear","0:6:0",{96,-64}},
-		{"met1",form.arc_top,"linear","0:6:0",{32,-64}},
-		{"met1",cfcircle(25,8),"linear","0:9:0",{96,-64}},
-		{"met1",cfcircle(25,8),"linear","0:9:0",{32,-64}},
-		{"met2",form.arc,"sinus","0:12:0",{33,-64}}
-		--]]
+		{"met1",cf_line(9,3,4,"v"),"linear","0:0:0",{64,-64}},
+		{"met1",cf_line(9,5,4,"h"),"linear","0:2:0",{64,-64}},
+		{"met1",cf_line(9,5,4,"dtlbr"),"linear","0:4:0",{64,-64}},
+		{"met1",cf_line(9,5,4,"dtrbl"),"linear","0:4:0",{64,-64}},
+		{"met1",_arcb5,"linear","0:6:0",{64,-64}},
+		{"met1",_arct5,"linear","0:8:0",{96,-64}},
+		{"met1",_arct5,"linear","0:8:0",{32,-64}},
+		{"met1",_c8,"linear","0:12:0",{96,-64}},
+		{"met1",_c8,"linear","0:12:0",{32,-64}},
+		{"met2",_arcb5,"sinus","0:17:0",{32,-64}},
+		{"met2",_arcb5,"sinus","0:17:0",{96,-64}}
 	}
 end
 -->8
@@ -179,8 +181,8 @@ function setup()
 		return v
 	end
 
-	player={}
-	function player:new(x_,y_)
+	pl={}
+	function pl:new(x_,y_)
 		local p={}
 		setmetatable(p, self)
 		self.__index = self
@@ -211,11 +213,6 @@ function setup()
 		e.points = p
 		return e
 	end
-	form={
-		vline={{-4,0},{-4,-10},{-4,-20},{-4,-30}},
-		arc={{-29,0},{-19,10},{-4,15},{11,10},{21,0}},
-		arc_top={{-29,0},{-19,-10},{-4,-15},{11,-10},{21,0}}
-	}
 end
 
 function update_timers()
@@ -238,14 +235,14 @@ function reset_timers()
 end
 
 function controls()
-	if(btn(⬅️))player.st.x-=player.st.vx
-	if(btn(➡️))player.st.x+=player.st.vx
-	if(btn(⬆️))player.st.y-=player.st.vy
-	if(btn(⬇️))player.st.y+=player.st.vy
-	if btn(❎) and player.shot_enable then
-		add_shot(player.st.x+player.w/2,player.st.y)
-		player.shotfrq=player.shotfrq_init
-		player.shot_enable=false
+	if(btn(⬅️))pl.st.x-=pl.st.vx
+	if(btn(➡️))pl.st.x+=pl.st.vx
+	if(btn(⬆️))pl.st.y-=pl.st.vy
+	if(btn(⬇️))pl.st.y+=pl.st.vy
+	if btn(❎) and pl.shot_enable then
+		add_shot(pl.st.x+pl.w/2,pl.st.y)
+		pl.shotfrq=pl.shotfrq_init
+		pl.shot_enable=false
 		sfx(0)
 	end
 end
@@ -265,7 +262,7 @@ function general_cd(a,e)
 		and a.st.y+a.h >= e.st.y) --cmp a bottom edge
  	-- compare from left to right
 		and (a.st.x+a.w >= e.st.x  --cmp a right edge
- 	and  a.st.x <= e.st.x+e.w) --cmp a left edge
+ 		and  a.st.x <= e.st.x+e.w) --cmp a left edge
  	then
 			return true
 	end
@@ -276,11 +273,11 @@ function update_stars()
 	for s in all(stars) do
 		s.y+=s.s
 		if s.y > 128 then
-   s.x=rnd(128)
-   s.y=0
-   s.s=rnd(5)/5+1
-   s.c=get★c()
-	 end
+			s.x=rnd(128)
+			s.y=0
+			s.s=rnd(5)/5+1
+			s.c=get★c()
+	 	end
 	end
 end
 
@@ -301,7 +298,7 @@ function draw_ui()
 	rectfill(ui_s.x1,ui_s.y1,ui_s.x2,ui_s.y2,0)
 	-- draw health
 	rect(110,122,127,127,7)
-	for l=0,player.hp-1 do
+	for l=0,pl.hp-1 do
 		local fact = l*5
 		rectfill(112+fact,124,115+fact,125,12)
 	end
@@ -309,7 +306,7 @@ function draw_ui()
 end
 
 function print_mid(txt,y,col)
- local col=col or 7
+ 	local col=col or 7
 	print(txt,64-(#txt*4)/2,y,col)
 end
 
@@ -341,40 +338,40 @@ function add_shot(x_,y_)
  	h=4,w=1,
 		st=vec_st:new(x_,y_,0,-3)
 	}
-	add(player.shots,s)
+	add(pl.shots,s)
 end
 
 function update_player_states()
 	-- update shot frequency
-	if not player.shot_enable then
-		player.shotfrq-=1
-  	-- enable shot again
-  	if player.shotfrq<0 then
-			   player.shot_enable=true
-				-- prevent underflow
-				player.shotfrq=-1
-			end
+	if not pl.shot_enable then
+		pl.shotfrq-=1
+		-- enable shot again
+		if pl.shotfrq<0 then
+			pl.shot_enable=true
+			-- prevent underflow
+			pl.shotfrq=-1
+		end
 	end
  
-	player.st.x=mid(0,player.st.x,127-player.w)
-	player.st.y=mid(0,player.st.y,ui_s.y1-player.h)
-	for s in all(player.shots) do
+	pl.st.x=mid(0,pl.st.x,127-pl.w)
+	pl.st.y=mid(0,pl.st.y,ui_s.y1-pl.h)
+	for s in all(pl.shots) do
 		s.st.y+=s.st.vy
- end
+ 	end
 end
 
 function player_cd()
 	-- detect if shots collided
 	-- with border
-	for i=#player.shots,1,-1 do
-		local s=player.shots[i]
-		if (s.st.y<0) del(player.shots,s)
+	for i=#pl.shots,1,-1 do
+		local s=pl.shots[i]
+		if (s.st.y<0) del(pl.shots,s)
 		-- check shot collision with 
 		-- ememy
 		for e in all(enemies) do
 			if general_cd(s,e) then
-				update_enemy_health(e,player.dmg)
-				del(player.shots,s)
+				update_enemy_health(e,pl.dmg)
+				del(pl.shots,s)
 			end
 		end
 	end
@@ -383,26 +380,26 @@ function player_cd()
 	-- enemy
 	if (debug_invince) return
 	for e in all(enemies) do
-		if general_cd(player,e) then
+		if general_cd(pl,e) then
 			update_player_hp(e.dmg)
-			update_enemy_health(e,player.dmg)
+			update_enemy_health(e,pl.dmg)
 		end
 	end
 end
 
 function update_player_hp(dmg)
-	player.hp-=dmg
-	if player.hp<=0 then
+	pl.hp-=dmg
+	if pl.hp<=0 then
 		change_gamestate("gameover")
 	end
 end
 
 function draw_player()
-	spr(player.spr_,player.st.x,player.st.y)
- -- draw shots
-	for s in all(player.shots) do
+	spr(pl.spr_,pl.st.x,pl.st.y)
+ 	-- draw shots
+	for s in all(pl.shots) do
 		line(s.st.x,s.st.y,s.st.x,s.st.y+s.h,12)
- end
+ 	end
 end
 -->8
 -- enemy specifics
@@ -411,27 +408,27 @@ function update_enemy_states()
 	for e in all(enemies) do
 		e.st.x+=e.st.vx
 		e.st.y+=e.st.vy
- end
+ 	end
 end
 
 function enemy_cd()
 	for e in all(enemies) do
- 	--check whether screen boundaries
-  --are reached
+		--check whether screen boundaries
+		--are reached
 		if e.st.x-e.w>128 or
-	    e.st.y>ui_s.y1 then
+	    	e.st.y>ui_s.y1 then
 			del(enemies,e)
 		end
- end
+	end
 end
 
 function update_enemy_health(e,dmg)
- 	e.hp-=dmg
- 	if e.hp<=0 then
-			del(enemies,e)
-			score+=e.points
-			sfx(1)
- 	end
+	e.hp-=dmg
+	if e.hp<=0 then
+		del(enemies,e)
+		score+=e.points
+		sfx(1)
+	end
 end
 
 function draw_enemies()
@@ -440,7 +437,7 @@ function draw_enemies()
 			spr(e.spr_,e.st.x,e.st.y)
 		end
 	end
- 	--debugtxt('#e: '..#enemies)
+	--debugtxt('#e: '..#enemies)
 end
 
 function update_create_enemies()
@@ -473,11 +470,11 @@ end
 -->8
 -- enemy formations
 
-function cfcircle(r,n)
-	local a=1/n
+function cf_circ(r,n,xy_off)
+	local _a=1/n
 	local circ_f={}
 	for i=0,n-1 do
-		add(circ_f,{r*-sin(a*i),r*cos(a*i)})
+		add(circ_f,{r*-sin(_a*i)-xy_off,r*cos(_a*i)-xy_off})
 	end
 	return circ_f
 end
@@ -485,12 +482,12 @@ end
 -- s: spacing
 -- n: number
 -- xy_off: offset in x/y (enemy width,height/2)
--- d: direction [v,h]
+-- d: direction
 -- 	v: vertical
 --		h: horizontal
 --		dtlbr: diagonal top left bottom right
 --		dtrbl: diagonal top right bottom left
-function cfline(s,n,xy_off,d)
+function cf_line(s,n,xy_off,d)
 	local _line={}
 	for i=0,n-1 do
 		local _v=n*s*(i/n-1/2)
@@ -505,6 +502,27 @@ function cfline(s,n,xy_off,d)
 	 end
 	end
 	return _line
+end
+
+-- r: radius
+-- n: number
+-- xy_off: offset in x/y (enemy width,height/2)
+-- d: direction
+--		t: top arc
+--		b: bottom arc
+function cf_arc(r,n,xy_off,d)
+	local _a=0.5/(n-1)
+	local _arc={}
+	for i=0,n-1 do
+		local _v=0.25
+		if d=="b" then
+			_v=_a*i-0.25 --90 deg offset
+		else
+			_v=_a*i+0.25 --90 deg offset
+		end
+		add(_arc,{r*sin(_v)-xy_off,r*cos(_v)-xy_off})
+	end
+	return _arc
 end
 __gfx__
 00000000000700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
