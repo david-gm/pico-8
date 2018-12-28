@@ -7,7 +7,7 @@ function _init()
 	debug_msg=true
 	debug_invince=false
 	⧗={
-		g={f=0,s=0,m=0,t="0:0:0"},
+		g={f=0,s=0,t="0:0"},
 		lvl_init=nil
 	}
 	score=0
@@ -47,6 +47,12 @@ end
 
 function draw_game()
 	cls(0)
+	debugtxt(#enemies)
+	if #enemies>0 then
+		local e = enemies[1]
+		debugpos({e.st.x,e.st.y},9)
+		debugtxt(e.path.d,18)
+	end
 	--debugtxt(⧗.g.t)
 	--debugtxt(#e_swarm[2][2],22)
 	--[[
@@ -140,21 +146,28 @@ function init_lvl1()
 	score=0
 	pl=pl:new((127-7)/2,ui_s.y1-6)
 	enemies={}
+	local _hl4=cf_line(9,5,4,"h")
 	local _c8=cf_circ(25,8,4)
 	local _arcb5=cf_arc(25,5,4,"b")
 	local _arct5=cf_arc(25,5,4,"t")
 	e_swarm={
-		{"met1",cf_line(9,3,4,"v"),"linear","0:0:0",{64,-64}},
-		{"met1",cf_line(9,5,4,"h"),"linear","0:2:0",{64,-64}},
-		{"met1",cf_line(9,5,4,"dtlbr"),"linear","0:4:0",{64,-64}},
-		{"met1",cf_line(9,5,4,"dtrbl"),"linear","0:4:0",{64,-64}},
-		{"met1",_arcb5,"linear","0:6:0",{64,-64}},
-		{"met1",_arct5,"linear","0:8:0",{96,-64}},
-		{"met1",_arct5,"linear","0:8:0",{32,-64}},
-		{"met1",_c8,"linear","0:12:0",{96,-64}},
-		{"met1",_c8,"linear","0:12:0",{32,-64}},
-		{"met2",_arcb5,"sinus","0:17:0",{32,-64}},
-		{"met2",_arcb5,"sinus","0:17:0",{96,-64}}
+		{"met1",cf_line(9,3,4,"v"),"lin","0:0",{64,-64}},
+		--debug only
+		{"met1",cf_line(9,3,4,"v"),"linh","1:0",{64,-64}},
+		--debug only
+		
+		--[
+		{"met1",_hl4,"lin","2:0",{64,-64}},
+		{"met1",cf_line(9,5,4,"dtlbr"),"lin","4:0",{64,-64}},
+		{"met1",cf_line(9,5,4,"dtrbl"),"lin","4:0",{64,-64}},
+		{"met1",_arcb5,"lin","6:0",{64,-64}},
+		{"met1",_arct5,"lin","8:0",{96,-64}},
+		{"met1",_arct5,"lin","8:0",{32,-64}},
+		{"met1",_c8,"lin","12:0",{96,-64}},
+		{"met1",_c8,"lin","12:0",{32,-64}},
+		{"met2",_hl4,"linh","17:0",{32,-64}},
+		{"met2",_hl4,"linh","17:0",{96,-64}}
+		--]]
 	}
 end
 -->8
@@ -170,47 +183,84 @@ function setup()
 
 	--vector_state
 	vec_st={}
-	function vec_st:new(x_,y_,vx_,vy_)
+	function vec_st:new(_x,_y,_vx,_vy)
 		local v={}
-		setmetatable(v, self)
-		self.__index = self
-		v.x = x_
-		v.y = y_
-		v.vx = vx_ --velocity x
-		v.vy = vy_ --velocity y
+		setmetatable(v,self)
+		self.__index=self
+		v.x=_x
+		v.y=_y
+		v.vx=_vx --velocity x
+		v.vy=_vy --velocity y
 		return v
 	end
-
-	pl={}
-	function pl:new(x_,y_)
+	
+	--path
+	path={}
+	function path:new(_name)
 		local p={}
-		setmetatable(p, self)
-		self.__index = self
-		p.w = 6
-		p.h = 7
-		p.st = vec_st:new(x_,y_,2,2)
-		p.spr_ = 1 --sprite number
-		p.hp = 3
-		p.dmg = 1
-		p.shotfrq_init=10
-		p.shotfrq=0
-		p.shot_enable=true
+		setmetatable(p,self)
+		self.__index=self
+		p.n=_name
+		--direction [d,u,l,r]
+		--	d: down, u: up
+		--	l: left, r:right
+		p.d="d"
+		return p
+	end
+	
+	--timer status class
+	⧗stat={}
+	function ⧗stat:new(_default,_enabled,_reset_en_val)
+		local ⧗so={}
+		setmetatable(⧗so,self)
+		⧗so.__index=self
+		⧗so.def=_default
+		⧗so._reset_en_val=_reset_en_val
+		⧗so.e=_enabled
+		⧗so.v=0
+		function ⧗so:reset()
+			⧗so.v=self.def
+			⧗so.e=self._reset_en_val
+		end
+		return ⧗so
+	end
+	
+	function ⧗stat:reset()
+		self.v=self.def
+		self.e=self._e_init
+	end
+	
+	pl={}
+	function pl:new(_x,_y)
+		local p={}
+		setmetatable(p,self)
+		self.__index=self
+		p.w=6
+		p.h=7
+		p.st=vec_st:new(_x,_y,2,2)
+		p.spr_=1 --sprite number
+		p.hp=5
+		p.dmg=1
+		--collision invincibility ⧗
+		p.⧗coll=⧗stat:new(60,true,false)
+		p.⧗shot=⧗stat:new(12,true,false)
 		p.shots={}
 		return p
 	end
  
 	enemy={}
-	function enemy:new(w,h,spr_,vec_st_,hp,dmg,p)
+	function enemy:new(w,h,_spr,_vec_st,hp,dmg,p,_path)
 		local e={}
-		setmetatable(e, self)
-		self.__index = self
-		e.w = w
-		e.h = h
-		e.st = vec_st_
-		e.spr_ = spr_ --sprite number
-		e.hp = hp
-		e.dmg = dmg
-		e.points = p
+		setmetatable(e,self)
+		self.__index=self
+		e.w=w
+		e.h=h
+		e.st=_vec_st
+		e.spr_=_spr --sprite number
+		e.hp=hp
+		e.dmg=dmg
+		e.points=p
+		e.path=path:new(_path)
 		return e
 	end
 end
@@ -221,16 +271,12 @@ function update_timers()
 		⧗.g.f=0
 		⧗.g.s+=1
 	end
-	if ⧗.g.s==60 then
-		⧗.g.s=0
-		⧗.g.m+=1
-	end
-	⧗.g.t=⧗.g.m..":"..⧗.g.s..":"..⧗.g.f
+	⧗.g.t=⧗.g.s..":"..⧗.g.f
 end
 
 function reset_timers()
 	⧗={
-		g={f=0,s=0,m=0,t="0:0:0"}
+		g={f=0,s=0,t="0:0"}
 	}
 end
 
@@ -239,10 +285,9 @@ function controls()
 	if(btn(➡️))pl.st.x+=pl.st.vx
 	if(btn(⬆️))pl.st.y-=pl.st.vy
 	if(btn(⬇️))pl.st.y+=pl.st.vy
-	if btn(❎) and pl.shot_enable then
+	if btn(❎) and pl.⧗shot.e then
 		add_shot(pl.st.x+pl.w/2,pl.st.y)
-		pl.shotfrq=pl.shotfrq_init
-		pl.shot_enable=false
+		pl.⧗shot:reset()
 		sfx(0)
 	end
 end
@@ -343,21 +388,26 @@ end
 
 function update_player_states()
 	-- update shot frequency
-	if not pl.shot_enable then
-		pl.shotfrq-=1
+	if not pl.⧗shot.e then
+		pl.⧗shot.v-=1
 		-- enable shot again
-		if pl.shotfrq<0 then
-			pl.shot_enable=true
-			-- prevent underflow
-			pl.shotfrq=-1
+		if pl.⧗shot.v<0 then
+			pl.⧗shot.e=true
 		end
 	end
+ 
+ if pl.⧗coll.e then
+ 	pl.⧗coll.v-=1
+ 	if pl.⧗coll.v<0 then
+ 		pl.⧗coll:reset()
+ 	end
+ end
  
 	pl.st.x=mid(0,pl.st.x,127-pl.w)
 	pl.st.y=mid(0,pl.st.y,ui_s.y1-pl.h)
 	for s in all(pl.shots) do
 		s.st.y+=s.st.vy
- 	end
+ end
 end
 
 function player_cd()
@@ -380,9 +430,11 @@ function player_cd()
 	-- enemy
 	if (debug_invince) return
 	for e in all(enemies) do
-		if general_cd(pl,e) then
+		if not pl.⧗coll.e
+			and general_cd(pl,e) then
 			update_player_hp(e.dmg)
 			update_enemy_health(e,pl.dmg)
+			pl.⧗coll.e=true
 		end
 	end
 end
@@ -395,7 +447,10 @@ function update_player_hp(dmg)
 end
 
 function draw_player()
-	spr(pl.spr_,pl.st.x,pl.st.y)
+	if not pl.⧗coll.e
+		or pl.⧗coll.v%10==0 then
+		spr(pl.spr_,pl.st.x,pl.st.y)
+	end
  	-- draw shots
 	for s in all(pl.shots) do
 		line(s.st.x,s.st.y,s.st.x,s.st.y+s.h,12)
@@ -406,8 +461,26 @@ end
 
 function update_enemy_states()
 	for e in all(enemies) do
-		e.st.x+=e.st.vx
-		e.st.y+=e.st.vy
+		local dx=0
+		local dy=0
+		local e_p=e.path
+		if e_p.n=="lin" then
+			dy=e.st.vy
+		elseif e_p.n=="linh" then
+			dy=e.st.vy
+			if e.st.y>20 then
+				dy=0
+				if (e.st.x>127-e.w) e_p.d="l"
+				if (e.st.x<=0) e_p.d="r"
+				if (e_p.d=="r") dx=e.st.vx
+				if (e_p.d=="l")	dx=-e.st.vx
+			else
+			-- inital value until y==20 reached
+				e_p.d="r"
+			end
+		end
+		e.st.x+=dx
+		e.st.y+=dy
  	end
 end
 
@@ -445,25 +518,24 @@ function update_create_enemies()
 		if ⧗.g.t==s[4] then
 			local _form=s[2]
 			-- path: todo
-			local _path=s[3]
 			for coords_f in all(_form) do
 				local _x=s[5][1]+coords_f[1]
 				local _y=s[5][2]+coords_f[2]
-				enemy_templates(s[1],_x,_y)
+				enemy_templates(s[1],_x,_y,s[3])
 			end
 		end
 	end
 end
-
-function enemy_templates(e_str,_x,_y)
+-- _p: path
+function enemy_templates(e_str,_x,_y,_p)
 	if e_str=="met1" then
 		add(enemies,enemy:new(8,8,16,
-			--state,life,dmg,points
-			vec_st:new(_x,_y,0,0.5),1,1,10))
+			--state,life,dmg,points, path
+			vec_st:new(_x,_y,0.5,0.5),1,1,10,_p))
 	elseif e_str=="met2" then
 		add(enemies,enemy:new(8,8,17,
-			--state,life,dmg,points
-			vec_st:new(_x,_y,0,1.0),2,1,20))
+			--state,life,dmg,points, path
+			vec_st:new(_x,_y,0.8,0.8),2,1,20,_p))
 	end
 end
 
