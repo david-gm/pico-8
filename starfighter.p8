@@ -5,7 +5,7 @@ __lua__
 -- by david gmeindl
 function _init()
 	debug_msg=true
-	debug_invince=false
+	debug_invince=true
 	⧗={
 		g={f=0,s=0,t="0:0"},
 		lvl_init=nil
@@ -50,8 +50,8 @@ function draw_game()
 	debugtxt(#enemies)
 	if #enemies>0 then
 		local e = enemies[1]
-		debugpos({e.st.x,e.st.y},9)
-		debugtxt(e.path.d,18)
+		--debugpos({e.st.x,e.st.y},9)
+		--debugtxt(e.path.d,18)
 	end
 	--debugtxt(⧗.g.t)
 	--debugtxt(#e_swarm[2][2],22)
@@ -153,10 +153,10 @@ function init_lvl1()
 	e_swarm={
 		{"met1",cf_line(9,3,4,"v"),"lin","0:0",{64,-64}},
 		--debug only
-		{"met1",cf_line(9,3,4,"v"),"linh","1:0",{64,-64}},
+		{"met1",cf_line(9,1,4,"v"),"linh","1:0",{64,-64}},
 		--debug only
 		
-		--[
+		--[[
 		{"met1",_hl4,"lin","2:0",{64,-64}},
 		{"met1",cf_line(9,5,4,"dtlbr"),"lin","4:0",{64,-64}},
 		{"met1",cf_line(9,5,4,"dtrbl"),"lin","4:0",{64,-64}},
@@ -194,6 +194,23 @@ function setup()
 		return v
 	end
 	
+	--counter class
+	counter={}
+	function counter:new(_default,_enabled,_reset_en_val)
+		local o={}
+		setmetatable(o,self)
+		o.__index=self
+		o.def=_default
+		o._reset_en_val=_reset_en_val
+		o.e=_enabled
+		o.v=_default
+		function o:reset()
+			o.v=self.def
+			o.e=self._reset_en_val
+		end
+		return o
+	end
+	
 	--path
 	path={}
 	function path:new(_name)
@@ -205,29 +222,9 @@ function setup()
 		--	d: down, u: up
 		--	l: left, r:right
 		p.d="d"
+		--counter: set when paths are handled
+		p.c=nil
 		return p
-	end
-	
-	--timer status class
-	⧗stat={}
-	function ⧗stat:new(_default,_enabled,_reset_en_val)
-		local ⧗so={}
-		setmetatable(⧗so,self)
-		⧗so.__index=self
-		⧗so.def=_default
-		⧗so._reset_en_val=_reset_en_val
-		⧗so.e=_enabled
-		⧗so.v=0
-		function ⧗so:reset()
-			⧗so.v=self.def
-			⧗so.e=self._reset_en_val
-		end
-		return ⧗so
-	end
-	
-	function ⧗stat:reset()
-		self.v=self.def
-		self.e=self._e_init
 	end
 	
 	pl={}
@@ -242,8 +239,8 @@ function setup()
 		p.hp=5
 		p.dmg=1
 		--collision invincibility ⧗
-		p.⧗coll=⧗stat:new(60,true,false)
-		p.⧗shot=⧗stat:new(12,true,false)
+		p.⧗coll=counter:new(60,false,false)
+		p.⧗shot=counter:new(12,true,false)
 		p.shots={}
 		return p
 	end
@@ -467,21 +464,41 @@ function update_enemy_states()
 		if e_p.n=="lin" then
 			dy=e.st.vy
 		elseif e_p.n=="linh" then
-			dy=e.st.vy
-			if e.st.y>20 then
-				dy=0
-				if (e.st.x>127-e.w) e_p.d="l"
-				if (e.st.x<=0) e_p.d="r"
-				if (e_p.d=="r") dx=e.st.vx
-				if (e_p.d=="l")	dx=-e.st.vx
-			else
-			-- inital value until y==20 reached
-				e_p.d="r"
-			end
+			dx,dy=path_linh(e_p,e.st,e.w,40,3)
 		end
 		e.st.x+=dx
 		e.st.y+=dy
  	end
+end
+
+-- p: path
+-- st: state
+-- w: enemy width
+-- yoff: y offset to start movement to the right
+-- n: number to repeat movement
+function path_linh(p,st,w,yoff,n)
+	local dx=0
+	local dy=st.vy
+	if not p.c then
+		--only n times to right, then leaving
+		p.c=counter:new(n,true,true)
+	end
+	if st.y>yoff then
+		dy=0
+		if st.x>127-w then
+		 p.d="l"
+		 if (p.c.e) p.c.v-=1
+		end
+		if (st.x<=0) p.d="r"
+		if (p.d=="r")	dx=st.vx
+		if (p.d=="l")	dx=-st.vx
+		--leave to the right if n times moved
+		if (p.c.v<=0) dx=st.vx
+	else
+	-- inital value until y==20 reached
+		p.d="r"
+	end
+	return dx, dy
 end
 
 function enemy_cd()
